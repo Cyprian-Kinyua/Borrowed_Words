@@ -200,12 +200,6 @@ Please follow our code style and include tests with your contributions.
 
 ---
 
-## 📄 License
-
-Licensed under the MIT License — see LICENSE file for details.
-
----
-
 ## 📞 Support
 
-Have questions? Open an issue or reach out to the team. Happy lending! 📚✨
+Have questions? Open an issue or reach out to the [team](kingscyprian89@gmail.com). Happy lending! 📚✨

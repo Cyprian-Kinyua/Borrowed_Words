@@ -17,14 +17,21 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('entities.urls')),
-    path('api/', include('books.urls')),  # Add this line
+    path('api/', include('books.urls')),
 
     # JWT token refresh endpoint
     path('api/auth/token/refresh/',
          TokenRefreshView.as_view(), name='token_refresh'),
 ]
+
+# Serve media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
