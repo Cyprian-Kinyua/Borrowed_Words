@@ -67,3 +67,12 @@ class Book(models.Model):
         if not self.location and self.owner.location:
             self.location = self.owner.location
         super().save(*args, **kwargs)
+
+    @property
+    def has_pending_requests(self):
+        """Check if this book has any pending borrow requests"""
+        return self.transactions.filter(status='PENDING').exists()
+
+    def get_pending_requests_count(self):
+        """Get count of pending borrow requests"""
+        return self.transactions.filter(status='PENDING').count()

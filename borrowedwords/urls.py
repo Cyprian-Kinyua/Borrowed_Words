@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('entities.urls')),
     path('api/', include('books.urls')),
+    path('api/', include('transactions.urls')),
 
     # JWT token refresh endpoint
     path('api/auth/token/refresh/',
