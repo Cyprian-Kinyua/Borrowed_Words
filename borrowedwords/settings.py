@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-e6u(1s+6=v2mx^=sfa2x7!s5dxhlj$7a%4rh4y5#(i-n2+*=-1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'milagro.pythonanywhere.com'
+]
 
 
 # Application definition
