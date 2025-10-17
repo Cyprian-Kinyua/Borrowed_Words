@@ -202,4 +202,4 @@ Please follow our code style and include tests with your contributions.
 
 ## 📞 Support
 
-Have questions? Open an issue or reach out to the [team](kingscyprian89@gmail.com). Happy lending! 📚✨
+Have questions? Open an issue or reach out to the [team](mailto:kingscyprian89@gmail.com). Happy lending! 📚✨
