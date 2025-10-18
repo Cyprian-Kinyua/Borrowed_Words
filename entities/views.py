@@ -9,69 +9,98 @@ from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 import requests
+import json
 
 
 def register_view(request):
     if request.method == 'POST':
-        response = requests.post(
-            'http://localhost:8000/api/auth/register/',
-            json={
-                'username': request.POST['username'],
-                'email': request.POST['email'],
-                'password': request.POST['password'],
-                'location': request.POST.get('location', '')
-            }
-        )
+        try:
+            response = requests.post(
+                f'{get_base_url(request)}/api/auth/register/',
+                json={
+                    'username': request.POST['username'],
+                    'email': request.POST['email'],
+                    'password': request.POST['password'],
+                    'location': request.POST.get('location', '')
+                }
+            )
 
-        if response.status_code == 201:
-            messages.success(request, 'Registration successful! Please login.')
-            return redirect('login')
-        else:
-            errors = response.json()
-            for field, error_list in errors.items():
-                messages.error(request, f"{field}: {', '.join(error_list)}")
+            if response.status_code == 201:
+                messages.success(
+                    request, 'Registration successful! Please login.')
+                return redirect('login')
+            else:
+                errors = response.json()
+                for field, error_list in errors.items():
+                    if isinstance(error_list, list):
+                        messages.error(
+                            request, f"{field}: {', '.join(error_list)}")
+                    else:
+                        messages.error(request, f"{field}: {error_list}")
+
+        except Exception as e:
+            messages.error(request, f'Registration failed: {str(e)}')
 
     return render(request, 'users/register.html')
 
 
 def login_view(request):
     if request.method == 'POST':
-        response = requests.post(
-            'http://localhost:8000/api/auth/login/',
-            json={
-                'username': request.POST['username'],
-                'password': request.POST['password']
-            }
-        )
+        try:
+            response = requests.post(
+                f'{get_base_url(request)}/api/auth/login/',
+                json={
+                    'username': request.POST['username'],
+                    'password': request.POST['password']
+                }
+            )
 
-        if response.status_code == 200:
-            data = response.json()
-            # Store tokens in session
-            request.session['access_token'] = data['access']
-            request.session['refresh_token'] = data['refresh']
-            request.session['user'] = data['user']
+            if response.status_code == 200:
+                data = response.json()
+                # Store tokens and user data in session
+                request.session['access_token'] = data['access']
+                request.session['refresh_token'] = data['refresh']
+                request.session['user'] = data['user']
+                request.session.modified = True
 
-            messages.success(
-                request, f"Welcome back, {data['user']['username']}!")
-            return redirect('dashboard')
-        else:
-            messages.error(request, 'Invalid credentials')
+                messages.success(
+                    request, f"Welcome back, {data['user']['username']}!")
+                return redirect('home')
+            else:
+                error_data = response.json()
+                messages.error(request, error_data.get(
+                    'detail', 'Invalid credentials'))
+
+        except Exception as e:
+            messages.error(request, f'Login failed: {str(e)}')
 
     return render(request, 'users/login.html')
 
 
 def logout_view(request):
     if 'access_token' in request.session:
-        requests.post(
-            'http://localhost:8000/api/auth/logout/',
-            headers={
-                'Authorization': f"Bearer {request.session['access_token']}"}
-        )
+        try:
+            # Call logout API
+            requests.post(
+                f'{get_base_url(request)}/api/auth/logout/',
+                headers={
+                    'Authorization': f"Bearer {request.session['access_token']}"}
+            )
+        except:
+            pass  # Even if API call fails, clear session
 
     # Clear session
     request.session.flush()
     messages.success(request, 'Logged out successfully')
     return redirect('home')
+
+
+def get_base_url(request):
+    """Get the base URL for API calls"""
+    if request.is_secure():
+        return f'https://{request.get_host()}'
+    else:
+        return f'http://{request.get_host()}'
 
 
 @api_view(['POST'])

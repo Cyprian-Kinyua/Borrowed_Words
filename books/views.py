@@ -30,6 +30,97 @@ def home_view(request):
 
 
 @login_required
+def dashboard_view(request):
+    """User dashboard"""
+    api_client = APIClient(request)
+
+    try:
+        dashboard_data = api_client.get('/dashboard/')
+    except Exception as e:
+        dashboard_data = {}
+        messages.error(request, 'Error loading dashboard')
+
+    context = {
+        'dashboard_data': dashboard_data,
+        'user': request.session.get('user', {})
+    }
+    return render(request, 'dashboard.html', context)
+
+
+@login_required
+def my_books_view(request):
+    """User's own books"""
+    api_client = APIClient(request)
+
+    try:
+        my_books = api_client.get('/books/my-books/')
+    except Exception as e:
+        my_books = []
+        messages.error(request, 'Error loading your books')
+
+    context = {
+        'books': my_books,
+        'user': request.session.get('user', {})
+    }
+    return render(request, 'books/my_books.html', context)
+
+
+@login_required
+def add_book_view(request):
+    """Add a new book"""
+    if request.method == 'POST':
+        api_client = APIClient(request)
+
+        try:
+            # Handle file upload separately if needed
+            book_data = {
+                'title': request.POST['title'],
+                'author': request.POST['author'],
+                'genre': request.POST['genre'],
+                'condition': request.POST['condition'],
+                'daily_rental_price': request.POST['daily_rental_price'],
+                'description': request.POST.get('description', ''),
+                'isbn': request.POST.get('isbn', ''),
+            }
+
+            response = api_client.post('/books/', book_data)
+            messages.success(request, 'Book added successfully!')
+            return redirect('my_books')
+
+        except Exception as e:
+            messages.error(request, f'Error adding book: {str(e)}')
+
+    context = {
+        'genres': ['FICTION', 'SCI_FI', 'MYSTERY', 'ROMANCE', 'FANTASY', 'HISTORICAL', 'BIOGRAPHY', 'OTHER'],
+        'conditions': ['NEW', 'LIKE_NEW', 'GOOD', 'FAIR', 'POOR']
+    }
+    return render(request, 'books/add_book.html', context)
+
+
+@login_required
+def transaction_list_view(request):
+    """User's transactions"""
+    api_client = APIClient(request)
+
+    transaction_type = request.GET.get('type', '')
+    endpoint = '/transactions/'
+    if transaction_type:
+        endpoint += f'?type={transaction_type}'
+
+    try:
+        transactions = api_client.get(endpoint)
+    except Exception as e:
+        transactions = []
+        messages.error(request, 'Error loading transactions')
+
+    context = {
+        'transactions': transactions,
+        'transaction_type': transaction_type
+    }
+    return render(request, 'transactions/transaction_list.html', context)
+
+
+@login_required
 def book_list_view(request):
     # Browse all books
     api_client = APIClient(request.session)
