@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from books.views import home_view, book_list_view, book_detail_view
+from entities.views import register_view, login_view, logout_view
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -23,6 +25,16 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Template views
+    path('', home_view, name='home'),
+    path('register/', register_view, name='register'),
+    path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
+    path('books/', book_list_view, name='book_list'),
+    path('books/<int:book_id>/', book_detail_view, name='book_detail'),
+
+    # API endpoints
     path('api/auth/', include('entities.urls')),
     path('api/', include('books.urls')),
     path('api/', include('transactions.urls')),

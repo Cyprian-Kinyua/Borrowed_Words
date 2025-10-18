@@ -1,3 +1,4 @@
+from pyexpat.errors import messages
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -7,6 +8,83 @@ from .models import Book
 from .serializers import BookSerializer
 from .permissions import IsOwnerOrReadOnly
 import django_filters
+from django.shortcuts import redirect, render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from utils.api_client import APIClient
+
+
+def home_view(request):
+    # Homepage view
+    api_client = APIClient(request.session)
+
+    try:
+        books = api_client.get('/books/books/?ordering=-created_at&limit=8')
+    except:
+        books = []
+
+    context = {
+        'recent_books': books,
+        'user': request.session.get('user')
+    }
+    return render(request, 'home.html', context)
+
+
+@login_required
+def book_list_view(request):
+    # Browse all books
+    api_client = APIClient(request.session)
+
+    # Get query parameters for filtering
+    search = request.GET.get('search', '')
+    genre = request.GET.get('genre', '')
+
+    endpoint = '/books/books/'
+    params = []
+    if search:
+        params.append(f'search={search}')
+    if genre:
+        params.append(f'genre={genre}')
+
+    if params:
+        endpoint += '?' + '&'.join(params)
+
+    try:
+        books = api_client.get(endpoint)
+    except Exception as e:
+        books = []
+        messages.error(request, 'Error loading books')
+
+    context = {
+        'books': books,
+        'search_query': search,
+        'selected_genre': genre
+    }
+    return render(request, 'books/books/book_list.html', context)
+
+
+@login_required
+def book_detail_view(request, book_id):
+    # Book detail page
+    api_client = APIClient(request.session)
+
+    try:
+        book = api_client.get(f'/books/books/{book_id}/')
+
+        # Check if user can borrow this book
+        can_borrow = (
+            request.session.get('user', {}).get('id') != book['owner']['id'] and
+            book['is_available']
+        )
+
+    except Exception as e:
+        messages.error(request, 'Book not found')
+        return redirect('book_list')
+
+    context = {
+        'book': book,
+        'can_borrow': can_borrow
+    }
+    return render(request, 'books/books/book_detail.html', context)
 
 
 class BookFilter(django_filters.FilterSet):

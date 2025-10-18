@@ -4,9 +4,74 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, logout
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+import requests
 
-# Create your views here.
+
+def register_view(request):
+    if request.method == 'POST':
+        response = requests.post(
+            'http://localhost:8000/api/auth/register/',
+            json={
+                'username': request.POST['username'],
+                'email': request.POST['email'],
+                'password': request.POST['password'],
+                'location': request.POST.get('location', '')
+            }
+        )
+
+        if response.status_code == 201:
+            messages.success(request, 'Registration successful! Please login.')
+            return redirect('login')
+        else:
+            errors = response.json()
+            for field, error_list in errors.items():
+                messages.error(request, f"{field}: {', '.join(error_list)}")
+
+    return render(request, 'users/register.html')
+
+
+def login_view(request):
+    if request.method == 'POST':
+        response = requests.post(
+            'http://localhost:8000/api/auth/login/',
+            json={
+                'username': request.POST['username'],
+                'password': request.POST['password']
+            }
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            # Store tokens in session
+            request.session['access_token'] = data['access']
+            request.session['refresh_token'] = data['refresh']
+            request.session['user'] = data['user']
+
+            messages.success(
+                request, f"Welcome back, {data['user']['username']}!")
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Invalid credentials')
+
+    return render(request, 'users/login.html')
+
+
+def logout_view(request):
+    if 'access_token' in request.session:
+        requests.post(
+            'http://localhost:8000/api/auth/logout/',
+            headers={
+                'Authorization': f"Bearer {request.session['access_token']}"}
+        )
+
+    # Clear session
+    request.session.flush()
+    messages.success(request, 'Logged out successfully')
+    return redirect('home')
 
 
 @api_view(['POST'])
