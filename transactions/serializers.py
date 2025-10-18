@@ -9,18 +9,38 @@ class BorrowTransactionSerializer(serializers.ModelSerializer):
     borrower = UserSerializer(read_only=True)
     lender = UserSerializer(read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
+    days_borrowed = serializers.SerializerMethodField()
+    estimated_fee = serializers.SerializerMethodField()
 
     class Meta:
         model = BorrowTransaction
         fields = [
             'id', 'book', 'borrower', 'lender', 'status', 'request_date',
             'accept_date', 'due_date', 'return_date', 'final_rental_fee',
-            'is_overdue'
+            'is_overdue', 'days_borrowed', 'estimated_fee'
         ]
         read_only_fields = [
             'id', 'book', 'borrower', 'lender', 'request_date', 'accept_date',
-            'due_date', 'return_date', 'final_rental_fee', 'is_overdue'
+            'due_date', 'return_date', 'final_rental_fee', 'is_overdue',
+            'days_borrowed', 'estimated_fee'
         ]
+
+    def get_days_borrowed(self, obj):
+        """Calculate days borrowed or currently borrowing"""
+        if obj.accept_date:
+            end_date = obj.return_date or timezone.now()
+            days = (end_date - obj.accept_date).days
+            return max(1, days)  # Minimum 1 day
+        return 0
+
+    def get_estimated_fee(self, obj):
+        """Calculate estimated or final rental fee"""
+        if obj.final_rental_fee:
+            return obj.final_rental_fee
+        elif obj.accept_date:
+            days = self.get_days_borrowed(obj)
+            return days * obj.book.daily_rental_price
+        return 0
 
 
 class BorrowTransactionCreateSerializer(serializers.ModelSerializer):

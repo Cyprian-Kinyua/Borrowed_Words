@@ -6,6 +6,20 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Book
 from .serializers import BookSerializer
 from .permissions import IsOwnerOrReadOnly
+import django_filters
+
+
+class BookFilter(django_filters.FilterSet):
+    min_price = django_filters.NumberFilter(
+        field_name="daily_rental_price", lookup_expr='gte')
+    max_price = django_filters.NumberFilter(
+        field_name="daily_rental_price", lookup_expr='lte')
+    author = django_filters.CharFilter(
+        field_name="author", lookup_expr='icontains')
+
+    class Meta:
+        model = Book
+        fields = ['genre', 'condition', 'is_available']
 
 
 class BookListView(generics.ListCreateAPIView):
@@ -20,6 +34,11 @@ class BookListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Book.objects.all()
+
+        # Location-based filtering (simple implementation)
+        user_location = self.request.query_params.get('location', None)
+        if user_location:
+            queryset = queryset.filter(location__icontains=user_location)
 
         # Only show available books to non-owners
         if not self.request.user.is_authenticated:
