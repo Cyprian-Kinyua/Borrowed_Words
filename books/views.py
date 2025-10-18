@@ -18,7 +18,7 @@ def home_view(request):
     api_client = APIClient(request.session)
 
     try:
-        books = api_client.get('/books/books/?ordering=-created_at&limit=8')
+        books = api_client.get('/books/?ordering=-created_at&limit=8')
     except:
         books = []
 
@@ -38,7 +38,7 @@ def book_list_view(request):
     search = request.GET.get('search', '')
     genre = request.GET.get('genre', '')
 
-    endpoint = '/books/books/'
+    endpoint = '/books/'
     params = []
     if search:
         params.append(f'search={search}')
@@ -59,7 +59,7 @@ def book_list_view(request):
         'search_query': search,
         'selected_genre': genre
     }
-    return render(request, 'books/books/book_list.html', context)
+    return render(request, 'books/book_list.html', context)
 
 
 @login_required
@@ -68,7 +68,7 @@ def book_detail_view(request, book_id):
     api_client = APIClient(request.session)
 
     try:
-        book = api_client.get(f'/books/books/{book_id}/')
+        book = api_client.get(f'/books/{book_id}/')
 
         # Check if user can borrow this book
         can_borrow = (
@@ -84,7 +84,7 @@ def book_detail_view(request, book_id):
         'book': book,
         'can_borrow': can_borrow
     }
-    return render(request, 'books/books/book_detail.html', context)
+    return render(request, 'books/book_detail.html', context)
 
 
 class BookFilter(django_filters.FilterSet):
