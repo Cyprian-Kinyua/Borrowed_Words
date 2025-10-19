@@ -11,7 +11,9 @@ class APIClient:
     def get_base_url(self):
         """Get the base URL for API calls"""
         try:
-            if hasattr(self.request, 'is_secure') and hasattr(self.request, 'get_host'):
+            if hasattr(settings, 'ON_PYTHONANYWHERE') and settings.ON_PYTHONANYWHERE:
+                return 'https://milagro.pythonanywhere.com'
+            elif hasattr(self.request, 'is_secure') and hasattr(self.request, 'get_host'):
                 if self.request.is_secure():
                     return f'https://{self.request.get_host()}'
                 else:
@@ -55,7 +57,7 @@ class APIClient:
         headers = {'Content-Type': 'application/json'}
 
         # Get token from session
-        if hasattr(self.request, 'session'):
+        if hasattr(self.request, 'session') and self.request.session.get('user'):
             access_token = self.request.session.get('access_token')
             if access_token:
                 headers['Authorization'] = f"Bearer {access_token}"
@@ -63,7 +65,7 @@ class APIClient:
             else:
                 print("DEBUG - No access token in session")
         else:
-            print("DEBUG - No session available in request")
+            print("DEBUG - No User in session (public request))")
 
         return headers
 
@@ -122,7 +124,22 @@ class APIClient:
         return {'error': 'Authentication failed after retry'}
 
     def get(self, endpoint):
-        return self.make_authenticated_request('GET', endpoint)
+        """Make GET request - works for both authenticated and public endpoints"""
+        try:
+            full_url = f"{self.base_url}/api{endpoint}"
+            if settings.DEBUG:
+                print(f"DEBUG - API GET: {full_url}")
+
+            response = requests.get(full_url, headers=self.get_headers())
+
+            if settings.DEBUG:
+                print(f"DEBUG - Response status: {response.status_code}")
+
+            return self._handle_response(response)
+        except Exception as e:
+            if settings.DEBUG:
+                print(f"DEBUG - API GET Exception: {e}")
+            return {'error': str(e)}
 
     def post(self, endpoint, data=None):
         return self.make_authenticated_request('POST', endpoint, data)

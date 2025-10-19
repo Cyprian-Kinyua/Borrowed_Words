@@ -16,18 +16,23 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ON_PYTHONANYWHERE = 'PYTHONANYWHERE_DOMAIN' in os.environ
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+if ON_PYTHONANYWHERE:
+    DEBUG = False
+    ALLOWED_HOSTS = ['milagro.pythonanywhere.com',
+                     'www.milagro.pythonanywhere.com']
+else:
+    DEBUG = True
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-e6u(1s+6=v2mx^=sfa2x7!s5dxhlj$7a%4rh4y5#(i-n2+*=-1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
 
 # Security settings
-SECURE_SSL_REDIRECT = True
+# SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
@@ -53,12 +58,7 @@ LOGGING = {
     },
 }
 
-ALLOWED_HOSTS = [
-    'milagro.pythonanywhere.com',
-    '127.0.0.1',
-    'localhost',
-    '[::1]',
-]
+
 CSRF_TRUSTED_ORIGINS = ['https://milagro.pythonanywhere.com']
 
 

@@ -21,10 +21,16 @@ def home_view(request):
     try:
         # Get recent books for the homepage
         books_data = api_client.get('/books/?ordering=-created_at&limit=8')
+        print(f"DEBUG - Home API Response: {books_data}")
 
         # Ensure we have a list and filter out any invalid books
         if isinstance(books_data, list):
             recent_books = [book for book in books_data if book.get('id')]
+        elif isinstance(books_data, dict) and 'detail' in books_data:
+            # API returned an error, likely authentication required
+            print(
+                f"DEBUG - API Error (will use empty books): {books_data['detail']}")
+            recent_books = []
         else:
             recent_books = []
 
