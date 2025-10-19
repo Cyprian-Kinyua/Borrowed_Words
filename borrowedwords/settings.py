@@ -17,17 +17,23 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 ON_PYTHONANYWHERE = 'PYTHONANYWHERE_DOMAIN' in os.environ
+ON_VERCEL = os.environ.get("VERCEL", None) is not None
 
 if ON_PYTHONANYWHERE:
     DEBUG = False
     ALLOWED_HOSTS = ['milagro.pythonanywhere.com',
                      'www.milagro.pythonanywhere.com']
+elif ON_VERCEL:
+    DEBUG = False
+    ALLOWED_HOSTS = ['.vercel.app']
 else:
     DEBUG = True
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e6u(1s+6=v2mx^=sfa2x7!s5dxhlj$7a%4rh4y5#(i-n2+*=-1'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 'django-insecure-e6u(1s+6=v2mx^=sfa2x7!s5dxhlj$7a%4rh4y5#(i-n2+*=-1')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -113,6 +119,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -211,6 +218,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Create media directory if it doesn't exist
 if not os.path.exists(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
+
+if ON_VERCEL:
+    CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app']
 
 # Email configuration (for notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
