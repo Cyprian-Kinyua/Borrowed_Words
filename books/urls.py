@@ -1,9 +1,9 @@
+# books/urls.py - This should be for API endpoints only
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.home, name='home'),
-    path('books/books/', views.BookListView.as_view(), name='book-list'),
-    path('books/books/<int:pk>/', views.BookDetailView.as_view(), name='book-detail'),
-    path('books/books/my-books/', views.MyBooksListView.as_view(), name='my-books'),
+    path('', views.BookListView.as_view(), name='api-book-list'),
+    path('<int:pk>/', views.BookDetailView.as_view(), name='api-book-detail'),
+    path('my-books/', views.MyBooksListView.as_view(), name='api-my-books'),
 ]

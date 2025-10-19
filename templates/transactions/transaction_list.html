@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container mt-4">
+        <h1>My Transactions</h1>
+        <!-- Transaction Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="{% url 'transaction_list' %}"
+                       class="btn btn-{% if not transaction_type %}primary{% else %}outline-primary{% endif %}">
+                        All Transactions
+                    </a>
+                    <a href="{% url 'transaction_list' %}?type=incoming"
+                       class="btn btn-{% if transaction_type == 'incoming' %}primary{% else %}outline-primary{% endif %}">
+                        Incoming Requests
+                    </a>
+                    <a href="{% url 'transaction_list' %}?type=outgoing"
+                       class="btn btn-{% if transaction_type == 'outgoing' %}primary{% else %}outline-primary{% endif %}">
+                        My Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Transactions List -->
+        <div class="row">
+            {% for transaction in transactions %}
+                <div class="col-12 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h5 class="card-title">{{ transaction.book.title }}</h5>
+                                    <p class="card-text mb-1">
+                                        <strong>
+                                            {% if transaction_type == 'outgoing' or transaction.borrower.username == user.username %}
+                                                To: {{ transaction.lender.username }}
+                                            {% else %}
+                                                From: {{ transaction.borrower.username }}
+                                            {% endif %}
+                                        </strong>
+                                    </p>
+                                    <p class="card-text text-muted mb-0">
+                                        Requested: {{ transaction.request_date|date:"M d, Y" }}
+                                        {% if transaction.due_date %}• Due: {{ transaction.due_date|date:"M d, Y" }}{% endif %}
+                                    </p>
+                                    {% if transaction.is_overdue %}<span class="badge bg-danger">Overdue</span>{% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="badge {% if transaction.status == 'PENDING' %}bg-warning {% elif transaction.status == 'ACCEPTED' %}bg-success {% elif transaction.status == 'REJECTED' %}bg-danger {% elif transaction.status == 'RETURNED' %}bg-info {% elif transaction.status == 'COMPLETED' %}bg-secondary {% else %}bg-light text-dark{% endif %}">
+                                        {{ transaction.status }}
+                                    </span>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <small class="text-muted d-block">${{ transaction.estimated_fee|default:0 }}</small>
+                                    <!-- Action Buttons -->
+                                    <div class="mt-2">
+                                        {% if transaction.status == 'PENDING' and transaction.lender.username == user.username %}
+                                            <!-- Lender can accept/reject pending requests -->
+                                            <form method="post"
+                                                  action="{% url 'accept_request' transaction.id %}"
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                            </form>
+                                            <form method="post"
+                                                  action="{% url 'reject_request' transaction.id %}"
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                            </form>
+                                        {% elif transaction.status == 'ACCEPTED' and transaction.borrower.username == user.username %}
+                                            <!-- Borrower can mark as returned -->
+                                            <form method="post"
+                                                  action="{% url 'mark_returned' transaction.id %}"
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-info btn-sm">Mark Returned</button>
+                                            </form>
+                                        {% elif transaction.status == 'RETURNED' and transaction.lender.username == user.username %}
+                                            <!-- Lender can confirm return -->
+                                            <form method="post"
+                                                  action="{% url 'confirm_return' transaction.id %}"
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-sm">Confirm Return</button>
+                                            </form>
+                                        {% elif transaction.status == 'PENDING' and transaction.borrower.username == user.username %}
+                                            <!-- Borrower can cancel their own pending request -->
+                                            <form method="post"
+                                                  action="{% url 'cancel_request' transaction.id %}"
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-warning btn-sm">Cancel Request</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-arrow-left-right display-1 text-muted"></i>
+                    <h3 class="text-muted mt-3">No transactions found</h3>
+                    <p class="text-muted">
+                        {% if transaction_type == 'outgoing' %}
+                            You haven't requested any books yet.
+                        {% elif transaction_type == 'incoming' %}
+                            You don't have any incoming requests.
+                        {% else %}
+                            You don't have any transactions yet.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'book_list' %}" class="btn btn-primary">Browse Books</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,80 +1,62 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h1>Dashboard</h1>
-  <p class="lead">Welcome back, {{ user.username }}!</p>
-
-  <div class="row">
-    <div class="col-md-3 mb-4">
-      <div class="card text-white bg-primary">
-        <div class="card-body">
-          <h5 class="card-title">Books Listed</h5>
-          <p class="card-text display-6">
-            {{ dashboard_data.stats.books_listed|default:0 }}
-          </p>
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container mt-4">
+        <h1>Dashboard</h1>
+        <p class="lead">Welcome back, {{ user.username }}!</p>
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Books Listed</h5>
+                        <p class="card-text display-6">{{ dashboard_data.stats.books_listed|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Borrowings</h5>
+                        <p class="card-text display-6">{{ dashboard_data.stats.active_borrowings|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">Pending Requests</h5>
+                        <p class="card-text display-6">{{ dashboard_data.stats.pending_decisions|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Lent</h5>
+                        <p class="card-text display-6">{{ dashboard_data.stats.total_lent|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-
-    <div class="col-md-3 mb-4">
-      <div class="card text-white bg-success">
-        <div class="card-body">
-          <h5 class="card-title">Active Borrowings</h5>
-          <p class="card-text display-6">
-            {{ dashboard_data.stats.active_borrowings|default:0 }}
-          </p>
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <a href="{% url 'add_book' %}" class="btn btn-primary me-md-2">
+                                <i class="bi bi-plus-circle"></i> Add New Book
+                            </a>
+                            <a href="{% url 'book_list' %}" class="btn btn-outline-primary me-md-2">
+                                <i class="bi bi-search"></i> Browse Books
+                            </a>
+                            <a href="{% url 'transaction_list' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left-right"></i> View Transactions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-
-    <div class="col-md-3 mb-4">
-      <div class="card text-white bg-warning">
-        <div class="card-body">
-          <h5 class="card-title">Pending Requests</h5>
-          <p class="card-text display-6">
-            {{ dashboard_data.stats.pending_decisions|default:0 }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3 mb-4">
-      <div class="card text-white bg-info">
-        <div class="card-body">
-          <h5 class="card-title">Total Lent</h5>
-          <p class="card-text display-6">
-            {{ dashboard_data.stats.total_lent|default:0 }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Actions -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Quick Actions</h5>
-          <div class="d-grid gap-2 d-md-flex">
-            <a href="{% url 'add_book' %}" class="btn btn-primary me-md-2">
-              <i class="bi bi-plus-circle"></i> Add New Book
-            </a>
-            <a
-              href="{% url 'book_list' %}"
-              class="btn btn-outline-primary me-md-2"
-            >
-              <i class="bi bi-search"></i> Browse Books
-            </a>
-            <a
-              href="{% url 'transaction_list' %}"
-              class="btn btn-outline-primary"
-            >
-              <i class="bi bi-arrow-left-right"></i> View Transactions
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}

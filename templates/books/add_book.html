@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Add a New Book</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="title" class="form-label">Book Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="author" class="form-label">Author *</label>
+                                    <input type="text" class="form-control" id="author" name="author" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="genre" class="form-label">Genre *</label>
+                                    <select class="form-select" id="genre" name="genre" required>
+                                        <option value="">Select Genre</option>
+                                        <option value="FICTION">Fiction</option>
+                                        <option value="SCI_FI">Science Fiction</option>
+                                        <option value="MYSTERY">Mystery</option>
+                                        <option value="ROMANCE">Romance</option>
+                                        <option value="FANTASY">Fantasy</option>
+                                        <option value="HISTORICAL">Historical</option>
+                                        <option value="BIOGRAPHY">Biography</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="condition" class="form-label">Condition *</label>
+                                    <select class="form-select" id="condition" name="condition" required>
+                                        <option value="">Select Condition</option>
+                                        <option value="NEW">New</option>
+                                        <option value="LIKE_NEW">Like New</option>
+                                        <option value="GOOD">Good</option>
+                                        <option value="FAIR">Fair</option>
+                                        <option value="POOR">Poor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="daily_rental_price" class="form-label">Daily Rental Price ($) *</label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="daily_rental_price"
+                                       name="daily_rental_price"
+                                       step="0.01"
+                                       min="0.01"
+                                       max="10.00"
+                                       value="0.50"
+                                       required />
+                                <div class="form-text">Suggested: $0.50 - $2.00 per day</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="isbn" class="form-label">ISBN (Optional)</label>
+                                <input type="text" class="form-control" id="isbn" name="isbn" />
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Add Book</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

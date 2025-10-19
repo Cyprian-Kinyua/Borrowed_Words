@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="container mt-4">
+    {% if book %}
+      <div class="row">
+        <div class="col-md-4">
+          {% if book.cover_image_url %}
+            <img src="{{ book.cover_image_url }}"
+                 class="img-fluid rounded"
+                 alt="{{ book.title }}">
+          {% else %}
+            <div class="bg-light rounded d-flex align-items-center justify-content-center"
+                 style="height: 400px">
+              <i class="bi bi-book display-1 text-muted"></i>
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-md-8">
+          <h1>{{ book.title }}</h1>
+          <p class="lead">by {{ book.author }}</p>
+          <div class="mb-3">
+            <span class="badge bg-primary">{{ book.genre }}</span>
+            <span class="badge bg-secondary">{{ book.condition }}</span>
+            <span class="badge bg-{% if book.is_available %}success{% else %}danger{% endif %}">
+              {% if book.is_available %}
+                Available
+              {% else %}
+                Unavailable
+              {% endif %}
+            </span>
+          </div>
+          <p class="fs-4 text-success">${{ book.daily_rental_price }}/day</p>
+          {% if book.description %}
+            <div class="mb-4">
+              <h5>Description</h5>
+              <p>{{ book.description }}</p>
+            </div>
+          {% endif %}
+          <div class="mb-4">
+            <h5>Book Owner</h5>
+            <p>
+              {% if book.owner.username %}
+                {{ book.owner.username }}
+              {% elif book.owner %}
+                {{ book.owner }}
+              {% else %}
+                Unknown Owner
+              {% endif %}
+            </p>
+            {% if book.location %}
+              <p class="text-muted">
+                <i class="bi bi-geo-alt"></i> {{ book.location }}
+              </p>
+            {% endif %}
+          </div>
+          <!-- Borrow Button Section -->
+          {% if can_borrow %}
+            <form method="post" action="{% url 'borrow_book' book.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-bookmark-plus"></i> Borrow This Book
+              </button>
+              <p class="text-muted mt-2">You'll be able to read this book for ${{ book.daily_rental_price }} per day</p>
+            </form>
+          {% elif not user %}
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i>
+              <a href="{% url 'login' %}">Login</a> or <a href="{% url 'register' %}">Register</a> to borrow this book.
+            </div>
+          {% else %}
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle"></i>
+              {% if owner_name == user.username or owner_id == user.id %}
+                This is your own book - you cannot borrow it.
+              {% elif not book.is_available %}
+                This book is currently unavailable for borrowing.
+              {% else %}
+                Unable to borrow this book at the moment.
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-danger">
+        <h4>Book Not Found</h4>
+        <p>The requested book could not be found.</p>
+        <a href="{% url 'book_list' %}" class="btn btn-primary">Back to Books</a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

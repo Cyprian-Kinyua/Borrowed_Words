@@ -41,7 +41,7 @@ def register_view(request):
         except Exception as e:
             messages.error(request, f'Registration failed: {str(e)}')
 
-    return render(request, 'users/register.html')
+    return render(request, 'entities/register.html')
 
 
 def login_view(request):
@@ -65,7 +65,7 @@ def login_view(request):
 
                 messages.success(
                     request, f"Welcome back, {data['user']['username']}!")
-                return redirect('home')
+                return redirect('dashboard')
             else:
                 error_data = response.json()
                 messages.error(request, error_data.get(
@@ -74,7 +74,7 @@ def login_view(request):
         except Exception as e:
             messages.error(request, f'Login failed: {str(e)}')
 
-    return render(request, 'users/login.html')
+    return render(request, 'entities/login.html')
 
 
 def logout_view(request):
@@ -92,7 +92,7 @@ def logout_view(request):
     # Clear session
     request.session.flush()
     messages.success(request, 'Logged out successfully')
-    return redirect('home')
+    return redirect('landing_page')
 
 
 def get_base_url(request):

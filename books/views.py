@@ -1,4 +1,4 @@
-from pyexpat.errors import messages
+from django.contrib import messages
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -9,27 +9,37 @@ from .serializers import BookSerializer
 from .permissions import IsOwnerOrReadOnly
 import django_filters
 from django.shortcuts import redirect, render, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from utils.api_client import APIClient
+from utils.decorators import jwt_login_required
 
 
 def home_view(request):
-    # Homepage view
-    api_client = APIClient(request.session)
+    """Homepage view"""
+    api_client = APIClient(request)
+    recent_books = []
 
     try:
-        books = api_client.get('/books/?ordering=-created_at&limit=8')
-    except:
-        books = []
+        # Get recent books for the homepage
+        books_data = api_client.get('/books/?ordering=-created_at&limit=8')
+
+        # Ensure we have a list and filter out any invalid books
+        if isinstance(books_data, list):
+            recent_books = [book for book in books_data if book.get('id')]
+        else:
+            recent_books = []
+
+    except Exception as e:
+        print(f"Error loading books: {e}")  # For debugging
+        recent_books = []
 
     context = {
-        'recent_books': books,
+        'recent_books': recent_books,
         'user': request.session.get('user')
     }
     return render(request, 'home.html', context)
 
 
-@login_required
+@jwt_login_required
 def dashboard_view(request):
     """User dashboard"""
     api_client = APIClient(request)
@@ -47,32 +57,45 @@ def dashboard_view(request):
     return render(request, 'dashboard.html', context)
 
 
-@login_required
+@jwt_login_required
 def my_books_view(request):
     """User's own books"""
     api_client = APIClient(request)
 
     try:
         my_books = api_client.get('/books/my-books/')
+        print(f"DEBUG - My Books API Response: {my_books}")  # Debug line
+
+        if isinstance(my_books, dict) and 'error' in my_books:
+            print(f"DEBUG - API Error: {my_books['error']}")
+            my_books = []
+            messages.error(request, 'Error loading your books')
+        elif not isinstance(my_books, list):
+            print(f"DEBUG - Unexpected response type: {type(my_books)}")
+            my_books = []
     except Exception as e:
+        print(f"DEBUG - Exception: {e}")
         my_books = []
         messages.error(request, 'Error loading your books')
 
+    # Filter out books without IDs
+    valid_books = [book for book in my_books if book and book.get('id')]
+    print(f"DEBUG - Valid books: {valid_books}")  # Debug line
+
     context = {
-        'books': my_books,
+        'books': valid_books,
         'user': request.session.get('user', {})
     }
     return render(request, 'books/my_books.html', context)
 
 
-@login_required
+@jwt_login_required
 def add_book_view(request):
     """Add a new book"""
     if request.method == 'POST':
         api_client = APIClient(request)
 
         try:
-            # Handle file upload separately if needed
             book_data = {
                 'title': request.POST['title'],
                 'author': request.POST['author'],
@@ -83,12 +106,23 @@ def add_book_view(request):
                 'isbn': request.POST.get('isbn', ''),
             }
 
+            print(f"DEBUG - Sending book data: {book_data}")
+
             response = api_client.post('/books/', book_data)
-            messages.success(request, 'Book added successfully!')
-            return redirect('my_books')
+            print(f"DEBUG - API Response: {response}")
+
+            if isinstance(response, dict) and 'error' in response:
+                error_msg = response['error']
+                messages.error(request, f'Error adding book: {error_msg}')
+                print(f"DEBUG - API Error: {error_msg}")
+            else:
+                messages.success(request, 'Book added successfully!')
+                return redirect('my_books')
 
         except Exception as e:
-            messages.error(request, f'Error adding book: {str(e)}')
+            error_msg = f'Error adding book: {str(e)}'
+            messages.error(request, error_msg)
+            print(f"DEBUG - Exception: {error_msg}")
 
     context = {
         'genres': ['FICTION', 'SCI_FI', 'MYSTERY', 'ROMANCE', 'FANTASY', 'HISTORICAL', 'BIOGRAPHY', 'OTHER'],
@@ -97,10 +131,49 @@ def add_book_view(request):
     return render(request, 'books/add_book.html', context)
 
 
-@login_required
-def transaction_list_view(request):
-    """User's transactions"""
+@jwt_login_required
+def edit_book_view(request, book_id):
+    """Edit an existing book"""
     api_client = APIClient(request)
+
+    if request.method == 'POST':
+        try:
+            book_data = {
+                'title': request.POST['title'],
+                'author': request.POST['author'],
+                'genre': request.POST['genre'],
+                'condition': request.POST['condition'],
+                'daily_rental_price': request.POST['daily_rental_price'],
+                'description': request.POST.get('description', ''),
+                'is_available': 'is_available' in request.POST,
+            }
+
+            print(f"DEBUG - Editing book {book_id} with data: {book_data}")
+
+            response = api_client.put(f'/books/{book_id}/', book_data)
+
+            if isinstance(response, dict) and 'error' in response:
+                messages.error(
+                    request, f'Error updating book: {response["error"]}')
+            else:
+                messages.success(request, 'Book updated successfully!')
+
+        except Exception as e:
+            messages.error(request, f'Error updating book: {str(e)}')
+
+    return redirect('my_books')
+
+
+@jwt_login_required
+def transaction_list_view(request):
+    """User's transactions with detailed debugging"""
+    api_client = APIClient(request)
+
+    # Debug session and user info
+    user_data = request.session.get('user', {})
+    print(f"DEBUG - Current User: {user_data}")
+    print(f"DEBUG - User ID: {user_data.get('id')}")
+    print(f"DEBUG - Username: {user_data.get('username')}")
 
     transaction_type = request.GET.get('type', '')
     endpoint = '/transactions/'
@@ -108,22 +181,62 @@ def transaction_list_view(request):
         endpoint += f'?type={transaction_type}'
 
     try:
-        transactions = api_client.get(endpoint)
+        transactions_data = api_client.get(endpoint)
+        print(f"DEBUG - Raw Transactions API Response: {transactions_data}")
+        print(f"DEBUG - Transactions Response Type: {type(transactions_data)}")
+
+        # Handle different response types
+        if isinstance(transactions_data, dict):
+            if 'detail' in transactions_data:
+                print(f"DEBUG - API Error: {transactions_data['detail']}")
+                messages.error(
+                    request, f'Error loading transactions: {transactions_data["detail"]}')
+                transactions = []
+            elif 'error' in transactions_data:
+                print(
+                    f"DEBUG - API General Error: {transactions_data['error']}")
+                messages.error(request, f'Error: {transactions_data["error"]}')
+                transactions = []
+            else:
+                print(f"DEBUG - Unexpected dictionary structure")
+                transactions = []
+        elif isinstance(transactions_data, list):
+            transactions = transactions_data
+            print(f"DEBUG - Found {len(transactions)} transactions")
+
+            # Debug each transaction
+            for i, transaction in enumerate(transactions):
+                print(f"DEBUG - Transaction {i}:")
+                print(f"  ID: {transaction.get('id')}")
+                print(f"  Status: {transaction.get('status')}")
+                print(f"  Book: {transaction.get('book', {}).get('title')}")
+                print(
+                    f"  Borrower: {transaction.get('borrower', {}).get('username')}")
+                print(
+                    f"  Lender: {transaction.get('lender', {}).get('username')}")
+                print(f"  Request Date: {transaction.get('request_date')}")
+        else:
+            print(f"DEBUG - Unexpected response type")
+            transactions = []
+            messages.error(request, 'Unexpected response from server')
+
     except Exception as e:
+        print(f"DEBUG - Transactions Exception: {str(e)}")
+        import traceback
+        print(f"DEBUG - Transactions Traceback: {traceback.format_exc()}")
         transactions = []
         messages.error(request, 'Error loading transactions')
 
     context = {
-        'transactions': transactions,
+        'transactions': transactions if isinstance(transactions, list) else [],
         'transaction_type': transaction_type
     }
     return render(request, 'transactions/transaction_list.html', context)
 
 
-@login_required
+@jwt_login_required
 def book_list_view(request):
-    # Browse all books
-    api_client = APIClient(request.session)
+    api_client = APIClient(request)
 
     # Get query parameters for filtering
     search = request.GET.get('search', '')
@@ -139,43 +252,157 @@ def book_list_view(request):
     if params:
         endpoint += '?' + '&'.join(params)
 
+    print(f"DEBUG - Final API Endpoint: {endpoint}")
+
     try:
-        books = api_client.get(endpoint)
+        books_data = api_client.get(endpoint)
+        print(f"DEBUG - Raw API Response: {books_data}")
+
+        # Check if we got an authentication error even after refresh
+        if isinstance(books_data, dict) and 'detail' in books_data:
+            if 'token_not_valid' in books_data.get('code', ''):
+                messages.error(
+                    request, 'Your session has expired. Please log in again.')
+                return redirect('login')
+            elif 'error' in books_data:
+                messages.error(
+                    request, f'Error loading books: {books_data["error"]}')
+                books_data = []
+
+        if isinstance(books_data, list):
+            valid_books = [
+                book for book in books_data if book and book.get('id')]
+            print(f"DEBUG - Valid books count: {len(valid_books)}")
+        else:
+            valid_books = []
+            messages.error(request, 'Error loading books')
+
     except Exception as e:
-        books = []
+        print(f"DEBUG - Exception: {e}")
+        valid_books = []
         messages.error(request, 'Error loading books')
 
     context = {
-        'books': books,
+        'books': valid_books,
         'search_query': search,
         'selected_genre': genre
     }
     return render(request, 'books/book_list.html', context)
 
 
-@login_required
+@jwt_login_required
 def book_detail_view(request, book_id):
-    # Book detail page
-    api_client = APIClient(request.session)
+    """Book detail page with proper error handling"""
+    api_client = APIClient(request)
+
+    print(f"DEBUG - Book Detail - Book ID: {book_id}")
 
     try:
-        book = api_client.get(f'/books/{book_id}/')
+        book_data = api_client.get(f'/books/{book_id}/')
+        print(f"DEBUG - Book Detail API Response: {book_data}")
+
+        # Handle different response types
+        if isinstance(book_data, dict):
+            if 'detail' in book_data:
+                # API returned an error
+                error_msg = book_data['detail']
+                print(f"DEBUG - Book Detail API Error: {error_msg}")
+                messages.error(request, f'Book not found: {error_msg}')
+                return redirect('book_list')
+            elif 'id' in book_data:
+                # Valid book data
+                book = book_data
+                print(f"DEBUG - Book data validated, ID: {book['id']}")
+            else:
+                # Unexpected dictionary structure
+                print(f"DEBUG - Unexpected book data structure: {book_data}")
+                messages.error(request, 'Unexpected book data format')
+                return redirect('book_list')
+        else:
+            # Unexpected response type
+            print(f"DEBUG - Unexpected book response type: {type(book_data)}")
+            messages.error(request, 'Unable to load book details')
+            return redirect('book_list')
+
+        # Debug the book owner structure
+        print(f"DEBUG - Book owner data: {book.get('owner')}")
+        print(f"DEBUG - Book owner type: {type(book.get('owner'))}")
 
         # Check if user can borrow this book
+        user_data = request.session.get('user', {})
+        user_id = user_data.get('id')
+        user_username = user_data.get('username')
+
+        # Handle different owner data structures
+        owner_data = book.get('owner', {})
+        if isinstance(owner_data, dict):
+            owner_id = owner_data.get('id')
+            owner_username = owner_data.get('username')
+        else:
+            # Owner might be a string (username) or integer (ID)
+            owner_id = owner_data
+            owner_username = str(owner_data)
+
+        book_available = book.get('is_available', False)
+
+        print(f"DEBUG - User data from session: {user_data}")
+        print(f"DEBUG - User ID: {user_id}")
+        print(f"DEBUG - Owner ID: {owner_id}")
+        print(f"DEBUG - Owner username: {owner_username}")
+        print(f"DEBUG - Book available: {book_available}")
+
+        is_own_book = (owner_username == user_username) or (
+            owner_id == user_username)
+
         can_borrow = (
-            request.session.get('user', {}).get('id') != book['owner']['id'] and
-            book['is_available']
+            user_id is not None and
+            not is_own_book and
+            book_available
         )
 
+        print(f"DEBUG - Final can_borrow: {can_borrow}")
+
     except Exception as e:
-        messages.error(request, 'Book not found')
+        print(f"DEBUG - Book Detail Exception: {str(e)}")
+        import traceback
+        print(f"DEBUG - Book Detail Traceback: {traceback.format_exc()}")
+        messages.error(request, 'Error loading book details')
         return redirect('book_list')
 
     context = {
         'book': book,
-        'can_borrow': can_borrow
+        'can_borrow': can_borrow,
+        'owner_name': owner_username,
+        'owner_id': owner_id
     }
     return render(request, 'books/book_detail.html', context)
+
+
+@jwt_login_required
+def borrow_book_view(request, book_id):
+    """Handle book borrowing requests"""
+    api_client = APIClient(request)
+
+    print(f"DEBUG - Borrow attempt for book ID: {book_id}")
+
+    try:
+        # Create borrow request
+        response = api_client.post('/transactions/', {'book_id': book_id})
+        print(f"DEBUG - Borrow API Response: {response}")
+
+        if isinstance(response, dict):
+            messages.success(request, 'Borrow request sent successfully!')
+        elif isinstance(response, dict) and 'error' in response:
+            error_msg = response.get('error', 'Unknown error')
+            messages.error(request, f'Failed to borrow book: {error_msg}')
+        else:
+            messages.error(request, 'Failed to send borrow request')
+
+    except Exception as e:
+        print(f"DEBUG - Borrow Exception: {e}")
+        messages.error(request, 'Error sending borrow request')
+
+    return redirect('book_detail', book_id=book_id)
 
 
 class BookFilter(django_filters.FilterSet):
